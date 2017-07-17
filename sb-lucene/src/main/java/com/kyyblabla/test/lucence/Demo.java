@@ -9,15 +9,14 @@ import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.*;
 import org.apache.lucene.store.RAMDirectory;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 
@@ -42,18 +41,27 @@ public class Demo {
         writer.close();
 
 
+        Term term = new Term("content", "name");
+        Query query = new TermQuery(term);
+
+
         DirectoryReader ireader = DirectoryReader.open(directory);
         IndexSearcher isearcher = new IndexSearcher(ireader);
-        // Parse a simple query that searches for "text":
-        QueryParser parser = new QueryParser("content", analyzer);
-        Query query = parser.parse("text");
 
-        ScoreDoc[] hits = isearcher.search(query, 1000).scoreDocs;
-        // Iterate through the results:
-        for (int i = 0; i < hits.length; i++) {
-            Document hitDoc = isearcher.doc(hits[i].doc);
-            assertEquals("This is the text to be indexed.", hitDoc.get("content"));
-        }
+
+        TopDocs search = isearcher.search(query, 10);
+
+        Arrays.stream(search.scoreDocs).forEach(d -> {
+            System.out.println(d.score);
+            try {
+                Document doc1 = isearcher.doc(d.doc);
+                System.out.println(doc1.get("content"));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            System.out.println("------");
+        });
+
         ireader.close();
         directory.close();
 
